@@ -6,7 +6,7 @@ namespace Purpaca.Events
     /// <summary>
     /// 非泛型的需要参数的监听者
     /// </summary>
-    public class ListenerRequiresParameter : IEventListener, IEventListener<object>
+    internal class ListenerRequiresParameter : IEventListener, IEventListener<object>
     {
         #region 字段
         private bool m_invokeWithoutParameter;
@@ -64,7 +64,7 @@ namespace Purpaca.Events
     /// 泛型的需要参数的监听者
     /// </summary>
     /// <typeparam name="T">所需参数的类型</typeparam>
-    public class ListenerRequiresParameter<T> : IEventListener, IEventListener<T>
+    internal class ListenerRequiresParameter<T> : IEventListener, IEventListener<T>
     {
         #region 字段
         private bool m_invokeWithoutParameter;

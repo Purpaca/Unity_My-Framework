@@ -5,7 +5,7 @@ namespace Purpaca.Events
     /// <summary>
     /// 无需参数的监听者
     /// </summary>
-    public class ListenerNonParameter : IEventListener
+    internal class ListenerNonParameter : IEventListener
     {
         #region 字段
         private UnityAction m_callback;
