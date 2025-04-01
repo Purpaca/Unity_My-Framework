@@ -27,7 +27,7 @@
 - 在项目的`Assets/Plugins/Purpaca`文件夹下找到你所需要的功能，导出为`unity package`，之后再导入到你自己的项目中。
 - 或者其它能帮助到你的使用方法...  
   
-主分支为当前最新的[发布版本](https://github.com/Purpaca/Unity_My-Framework/releases)，通过切换到对应的分支来查看不成熟或还在开发中的功能。
+主分支为当前最新的[发布版本](https://github.com/Purpaca/Unity_My-Framework/releases)，通过切换到对应的分支来查看还在开发中的功能。
 
 ### 答疑解惑
 本仓库提供[帮助文档](./docs/cn/manual/index.md)！  
