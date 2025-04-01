@@ -72,3 +72,14 @@ crashlytics-build.properties
 # Temporary auto-generated Android Assets
 /[Aa]ssets/[Ss]treamingAssets/aa.meta
 /[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# MacOS auto-generated
+**/.DS_Store
+**/__MACOSX/
+
+# Others
+.vsconfig
+/[Aa]sset[Bb]undles
+/[Aa]ssets/[Ss]treamingAssets/[Aa]ssetBundles
+/[Aa]ssets/[Tt]est/
+/[Aa]ssets/[Tt]ests/
