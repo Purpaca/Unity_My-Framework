@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine.Events;
+using UnityEngine;
 
 namespace Purpaca.Events
 {
@@ -10,13 +10,13 @@ namespace Purpaca.Events
     public class Event
     {
         #region 字段
-        private Dictionary<string, ListenerBase> m_listeners = new Dictionary<string, ListenerBase>();
+        private List<IEventListenerBase> m_listeners;
         #endregion
 
         #region 构造器
         public Event() 
         {
-            m_listeners = new Dictionary<string, ListenerBase>();
+            m_listeners = new List<IEventListenerBase>();
         }
         #endregion
 
@@ -26,19 +26,11 @@ namespace Purpaca.Events
         /// </summary>
         public void Broadcast()
         {
-            foreach (var listener in m_listeners.Values)
+            foreach (var listener in m_listeners)
             {
-                if (listener is ListenerNonParameter)
+                if(listener is IEventListener) 
                 {
-                    (listener as ListenerNonParameter).Invoke();
-                }
-                else if(listener is ListenerRequiresParameterBase)
-                {
-                    var l = listener as ListenerRequiresParameterBase;
-                    if(l.InvokeWithoutParameter)
-                    {
-                        BroadcastWithDefaultParameterValue(listener);
-                    }
+                    (listener as IEventListener).Invoke();
                 }
             }
         }
@@ -49,26 +41,39 @@ namespace Purpaca.Events
         /// <param name="parameter">提供的参数</param>
         public void Broadcast<T>(T parameter)
         {
-            foreach (var listener in m_listeners.Values)
+            foreach (var listener in m_listeners)
             {
-                if (listener is ListenerNonParameter)
+                if (listener is IEventListener<T>)
                 {
-                    (listener as ListenerNonParameter).Invoke();
+                    (listener as IEventListener<T>).Invoke(parameter);
                 }
-                else if (listener is ListenerRequiresParameter<T>)
+                else
                 {
-                    (listener as ListenerRequiresParameter<T>).Invoke(parameter);
-                }
-                else if (listener is ListenerRequiresParameter)
-                {
-                    var l = listener as ListenerRequiresParameter;
-                    if (l.ParameterType == typeof(T))
+                    bool foundGenericInterface = false;
+
+                    var interfaces = listener.GetType().GetInterfaces();
+                    foreach (var interfaceType in interfaces)
                     {
-                        l.Invoke(parameter);
+                        // 获取IEventListener<T>接口,并调用Invoke方法
+                        if (interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(IEventListener<>))
+                        {
+                            var genericType = interfaceType.GetGenericArguments()[0];
+                            var actualInterfaceType = typeof(IEventListener<>).MakeGenericType(genericType);
+                            var paramType = actualInterfaceType.GetProperty("ParameterType").GetValue(listener) as Type;
+                            if (paramType == typeof(T))
+                            {
+                                var method = actualInterfaceType.GetMethod("Invoke");
+                                method.Invoke(listener, new object[] { parameter });
+                            }
+
+                            foundGenericInterface = true;
+                        }
                     }
-                    else if (l.InvokeWithoutParameter)
+
+                    if (!foundGenericInterface)
                     {
-                        BroadcastWithDefaultParameterValue(listener);
+                        // 进入此代码块，则当前listener实现的是非泛型无需参数的IEventListener接口
+                        (listener as IEventListener).Invoke();
                     }
                 }
             }
@@ -81,124 +86,62 @@ namespace Purpaca.Events
         /// <param name="type">所提供参数的类型</param>
         public void Broadcast(object parameter, Type type)
         {
-            foreach (var listener in m_listeners.Values)
+            foreach (var listener in m_listeners)
             {
-                if (listener is ListenerNonParameter)
+                bool foundGenericInterface = false;
+
+                var interfaces = listener.GetType().GetInterfaces();
+                foreach (var interfaceType in interfaces)
                 {
-                    (listener as ListenerNonParameter).Invoke();
+                    // 获取IEventListener<T>接口,并调用Invoke方法
+                    if (interfaceType.IsGenericType && interfaceType.GetGenericTypeDefinition() == typeof(IEventListener<>))
+                    {
+                        var genericType = interfaceType.GetGenericArguments()[0];
+                        var actualInterfaceType = typeof(IEventListener<>).MakeGenericType(genericType);
+                        var paramType = actualInterfaceType.GetProperty("ParameterType").GetValue(listener) as Type;
+                        if (paramType == type)
+                        {
+                            var method = actualInterfaceType.GetMethod("Invoke");
+                            method.Invoke(listener, new object[] { parameter });
+                        }
+
+                        foundGenericInterface = true;
+                    }
                 }
-                else
+
+                if (!foundGenericInterface)
                 {
-                    if (listener is ListenerRequiresParameter)
-                    {
-                        var l = listener as ListenerRequiresParameter;
-                        if (l.ParameterType == type)
-                        {
-                            l.Invoke(parameter);
-                        }
-                        else if (l.InvokeWithoutParameter)
-                        {
-                            BroadcastWithDefaultParameterValue(listener);
-                        }
-                    }
-                    else
-                    {
-                        Type genericType = typeof(ListenerRequiresParameter<>).MakeGenericType(type);
-                        if (listener.GetType() == genericType)
-                        {
-                            listener.GetType().GetMethod("Invoke").Invoke(listener, new object[] { parameter });
-                        }
-                        else
-                        {
-                            if ((listener as ListenerRequiresParameterBase).InvokeWithoutParameter)
-                            {
-                                BroadcastWithDefaultParameterValue(listener);
-                            }
-                        }
-                    }
+                    // 进入此代码块，则当前listener实现的是非泛型无需参数的IEventListener接口
+                    (listener as IEventListener).Invoke();
                 }
             }
         }
 
         /// <summary>
-        /// 为此事件注册一个监听者
+        /// 添加指定的事件监听者
         /// </summary>
-        /// <param name="callback">回调方法</param>
-        /// <returns>此监听者的唯一标识ID</returns>
-        public string AddListener(UnityAction callback)
+        /// <param name="listener">要添加的事件监听者</param>
+        public void AddListener(IEventListenerBase listener)
         {
-            string guid = Guid.NewGuid().ToString();
-            var listener = new ListenerNonParameter(callback);
-            m_listeners.Add(guid, listener);
-            return guid;
+            if (m_listeners.Contains(listener)) 
+            {
+                Debug.LogWarning($"this listener is already exist!");
+                return;
+            }
+
+            m_listeners.Add(listener);
         }
 
         /// <summary>
-        /// 为此事件注册一个监听者
+        /// 移除指定的事件监听者
         /// </summary>
-        /// <typeparam name="T">监听者的回调方法所需参数的类型</typeparam>
-        /// <param name="callback">回调方法</param>
-        /// <returns>此监听者的唯一标识ID</returns>
-        public string AddListener<T>(UnityAction<T> callback)
+        /// <param name="listenerToRemove">要移除的事件监听者</param>
+        public void RemoveListener(IEventListenerBase listenerToRemove)
         {
-            string guid = Guid.NewGuid().ToString();
-            var listener = new ListenerRequiresParameter<T>(callback);
-            m_listeners.Add(guid, listener);
-            return guid;
-        }
-
-        /// <summary>
-        /// 为此事件注册一个监听者
-        /// </summary>
-        /// <typeparam name="T">监听者的回调方法所需参数的类型</typeparam>
-        /// <param name="callback">回调方法</param>
-        /// <param name="invokeWithoutParameter">当事件广播时未提供对应的参数，是否调用此监听者的回调方法？</param>
-        /// <returns>此监听者的唯一标识ID</returns>
-        public string AddListener<T>(UnityAction<T> callback, bool invokeWithoutParameter)
-        {
-            string guid = Guid.NewGuid().ToString();
-            var listener = new ListenerRequiresParameter<T>(callback, invokeWithoutParameter);
-            m_listeners.Add(guid, listener);
-            return guid;
-        }
-
-        /// <summary>
-        /// 为此事件注册一个监听者
-        /// </summary>
-        /// <param name="callback">回调方法</param>
-        /// <param name="type">监听者的回调方法所需参数的类型</param>
-        /// <returns>此监听者的唯一标识ID</returns>
-        public string AddListener(UnityAction<object> callback, Type type)
-        {
-            string guid = Guid.NewGuid().ToString();
-            var listener = new ListenerRequiresParameter(callback, type);
-            m_listeners.Add(guid, listener);
-            return guid;
-        }
-
-        /// <summary>
-        /// 为此事件注册一个监听者
-        /// </summary>
-        /// <param name="callback">回调方法</param>
-        /// <param name="type">监听者的回调方法所需参数的类型</param>
-        /// <param name="invokeWithoutParameter">当事件广播时未提供对应的参数，是否调用此监听者的回调方法？</param>
-        /// <returns>此监听者的唯一标识ID</returns>
-        public string AddListener(UnityAction<object> callback, Type type, bool invokeWithoutParameter)
-        {
-            string guid = Guid.NewGuid().ToString();
-            var listener = new ListenerRequiresParameter(callback, type, invokeWithoutParameter);
-            m_listeners.Add(guid, listener);
-            return guid;
-        }
-
-        /// <summary>
-        /// 移除唯一标识ID对应的监听者
-        /// </summary>
-        /// <param name="guid">所要移除监听者的唯一标识ID</param>
-        public void RemoveListener(string guid)
-        {
-            if (m_listeners.ContainsKey(guid))
-                m_listeners.Remove(guid);
+            if (m_listeners.Contains(listenerToRemove)) 
+            {
+                m_listeners.Remove(listenerToRemove);
+            }
         }
 
         /// <summary>
@@ -214,7 +157,7 @@ namespace Purpaca.Events
         /// <summary>
         /// 以提供为null或默认值的参数的方式广播事件
         /// </summary>
-        private void BroadcastWithDefaultParameterValue(ListenerBase listener)
+        private void BroadcastWithDefaultParameterValue(IEventListenerBase listener)
         {
             var method = listener.GetType().GetMethod("Invoke");
 

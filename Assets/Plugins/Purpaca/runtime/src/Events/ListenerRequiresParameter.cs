@@ -6,7 +6,7 @@ namespace Purpaca.Events
     /// <summary>
     /// 非泛型的需要参数的监听者
     /// </summary>
-    public class ListenerRequiresParameter : ListenerRequiresParameterBase
+    public class ListenerRequiresParameter : IEventListener, IEventListener<object>
     {
         #region 字段
         private bool m_invokeWithoutParameter;
@@ -27,7 +27,7 @@ namespace Purpaca.Events
         /// <param name="callback">回调方法</param>
         /// <param name="parameterType">所需参数的类型</param>
         /// <param name="invokeWithoutParameter">当监听的事件以未提供参数的方式广播时，是否调用回调方法？</param>
-        public ListenerRequiresParameter(UnityAction<object> callback,Type parameterType, bool invokeWithoutParameter)
+        public ListenerRequiresParameter(UnityAction<object> callback, Type parameterType, bool invokeWithoutParameter)
         {
             m_callback = callback;
             m_parameterType = parameterType;
@@ -36,13 +36,25 @@ namespace Purpaca.Events
         #endregion
 
         #region 属性
-        public override Type ParameterType => m_parameterType;
-        public override bool InvokeWithoutParameter => m_invokeWithoutParameter;
+        public Type ParameterType { get => m_parameterType; }
         #endregion
 
         #region Public 方法
+        public void Invoke()
+        {
+            if (m_invokeWithoutParameter)
+            {
+                Invoke(null);
+            }
+        }
+
         public void Invoke(object parameter)
         {
+            if(parameter == null && !m_invokeWithoutParameter) 
+            {
+                return;
+            }
+
             m_callback?.Invoke(parameter);
         }
         #endregion
@@ -52,7 +64,7 @@ namespace Purpaca.Events
     /// 泛型的需要参数的监听者
     /// </summary>
     /// <typeparam name="T">所需参数的类型</typeparam>
-    public class ListenerRequiresParameter<T> : ListenerRequiresParameterBase
+    public class ListenerRequiresParameter<T> : IEventListener, IEventListener<T>
     {
         #region 字段
         private bool m_invokeWithoutParameter;
@@ -76,14 +88,22 @@ namespace Purpaca.Events
         }
         #endregion
 
-        #region 属性
-        public override Type ParameterType => typeof(T);
-        public override bool InvokeWithoutParameter => m_invokeWithoutParameter;
-        #endregion
-
         #region Public 方法
+        public void Invoke() 
+        {
+            if (m_invokeWithoutParameter) 
+            {
+                Invoke(default);
+            }
+        }
+
         public void Invoke(T parameter)
         {
+            if (parameter == null && !m_invokeWithoutParameter) 
+            {
+                return;
+            }
+
             m_callback?.Invoke(parameter);
         }
         #endregion

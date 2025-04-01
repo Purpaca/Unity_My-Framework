@@ -5,7 +5,7 @@ namespace Purpaca.Events
     /// <summary>
     /// 无需参数的监听者
     /// </summary>
-    public class ListenerNonParameter : ListenerBase 
+    public class ListenerNonParameter : IEventListener
     {
         #region 字段
         private UnityAction m_callback;
@@ -20,9 +20,6 @@ namespace Purpaca.Events
         #endregion
 
         #region Public 方法
-        /// <summary>
-        /// 调用监听者提供的回调方法
-        /// </summary>
         public void Invoke()
         {
             m_callback?.Invoke();
