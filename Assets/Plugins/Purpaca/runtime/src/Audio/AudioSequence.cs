@@ -6,12 +6,17 @@ namespace Purpaca
     /// <summary>
     /// 音频序列
     /// </summary>
-    public class AudioSequence : ScriptableObject
+    public sealed class AudioSequence : ScriptableObject
     {
+        #region 字段
         [SerializeField]
         private Clip[] m_clips;
+        #endregion
 
         #region 属性
+        /// <summary>
+        /// 此音频序列内包含的所有片段
+        /// </summary>
         public Clip[] Clips
         {
             get => m_clips;
@@ -33,7 +38,6 @@ namespace Purpaca
         /// 加载此音频序列中所有AudioClip的AudioData
         /// （导入设置中开启了"Preload Audio Data"选项的AudioClip会自动加载其AudioData）
         /// </summary>
-        /// <returns>是否加载成功？</returns>
         public void LoadAudioData()
         {
             foreach (Clip clip in m_clips)
@@ -46,7 +50,6 @@ namespace Purpaca
         /// 卸载此音频序列中所有AudioClip的AudioData
         /// （此方法只对基于实际音频文件资源的AudioClip有效）
         /// </summary>
-        /// <returns>是否卸载成功？</returns>
         public void UnloadAudioData()
         {
             foreach (Clip clip in m_clips)
@@ -63,13 +66,16 @@ namespace Purpaca
         [Serializable]
         public sealed class Clip
         {
+            #region 字段
             [SerializeField]
             private AudioClip m_audioClip;
 
             [SerializeField, Tooltip("循环次数（片段会在播放一次的基础上根据该值额外重复播放多次，如果此值为负，则永久循环播放）")]
             private int m_loops;
+            #endregion
 
             #region 构造器
+            /// <param name="loops">循环次数（片段会在播放一次的基础上根据该值额外重复播放多次，如果此值为负，则永久循环播放）</param>
             public Clip(AudioClip audioClip, int loops)
             {
                 m_audioClip = audioClip;
