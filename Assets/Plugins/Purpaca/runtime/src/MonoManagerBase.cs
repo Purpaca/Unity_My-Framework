@@ -7,13 +7,6 @@ namespace Purpaca
     /// </summary>
     public abstract class MonoManagerBase<T> : AutoInstantiateMonoSingleton<T> where T : MonoManagerBase<T>
     {
-        #region 属性
-        /// <summary>
-        /// 管理器<see cref="T"/>的单例实例
-        /// </summary>
-        public static T Instance => instance;
-        #endregion
-
         #region Public 方法
         /// <summary>
         /// 初始化管理器
