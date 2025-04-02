@@ -34,16 +34,12 @@ namespace Purpaca
         /// （导入设置中开启了"Preload Audio Data"选项的AudioClip会自动加载其AudioData）
         /// </summary>
         /// <returns>是否加载成功？</returns>
-        public bool LoadAudioData()
+        public void LoadAudioData()
         {
-            bool succeeded = true;
-
             foreach (Clip clip in m_clips)
             {
-                succeeded = clip.AudioClip.LoadAudioData();
+                clip.AudioClip.LoadAudioData();
             }
-
-            return succeeded;
         }
 
         /// <summary>
@@ -51,16 +47,12 @@ namespace Purpaca
         /// （此方法只对基于实际音频文件资源的AudioClip有效）
         /// </summary>
         /// <returns>是否卸载成功？</returns>
-        public bool UnloadAudioData()
+        public void UnloadAudioData()
         {
-            bool succeeded = true;
-
             foreach (Clip clip in m_clips)
             {
-                succeeded = clip.AudioClip.UnloadAudioData();
+                clip.AudioClip.UnloadAudioData();
             }
-
-            return succeeded;
         }
         #endregion
 

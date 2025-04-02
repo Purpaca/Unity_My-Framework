@@ -13,67 +13,44 @@ namespace Purpaca
     public class AudioManager : MonoManagerBase<AudioManager>
     {
         #region 字段
+        private AudioMixer _mixer;
+        private AudioMixerGroup _masterGroup, _musicGroup, _soundGroup, _otherGroup;
+
+        private int m_maxPooledAudioSourceCount = 50;
+        private int m_maxPooledHandleCount = 50;
+
+        private float m_masterVolume = 1.0f;    // 全局音频播放音量
+        private float m_musicVolume = 1.0f;     // 音乐音频播放音量
+        private float m_soundVolume = 1.0f;     // 音效音频播放音量
+        private float m_otherVolume = 1.0f;     // 其它音频播放音量
+
         private List<Handle> m_oneShotHandles;
         private Dictionary<string, Handle> m_managedHandles;
         private List<AudioSource> m_pooledAudioSources;
         private List<Handle> m_pooledHandles;
 
-        private float m_masterVolume = 1.0f;    // 全局音频播放音量
-        private float m_musicVolume = 1.0f;     // 音乐音频播放音量 
-        private float m_soundVolume = 1.0f;     // 音效音频播放音量
-        private float m_otherVolume = 1.0f;     // 其它音频播放音量
-        private int m_maxPooledAudioSourceCount = 50;
-        private int m_maxPooledHandleCount = 50;
-
-        private AudioMixer _mixer;
-        private AudioMixerGroup _masterGroup, _musicGroup, _soundGroup, _otherGroup;
-        #endregion
-
         #region 索引器
-        private BypassEffectsIndexer m_bypassEffectsIndexer = new();
-        private BypassListenerEffectsIndexer m_bypassListenerEffectsIndexer = new();
-        private BypassReverbZonesIndexer m_bypassReverbZonesIndexer = new();
+        private BypassEffectsIndexer m_bypassEffectsIndexer;
+        private BypassListenerEffectsIndexer m_bypassListenerEffectsIndexer;
+        private BypassReverbZonesIndexer m_bypassReverbZonesIndexer;
 
-        private VolumeIndexer m_volumeIndexer = new();
-        private PitchIndexer m_pitchIndexer = new();
-        private PanSteroIndexer m_panSteroIndexer = new();
-        private SpatialBlendIndexer m_spatialBlendIndexer = new();
-        private ReverbZoneMixIndexer m_reverbZoneMixIndexer = new();
+        private VolumeIndexer m_volumeIndexer;
+        private PitchIndexer m_pitchIndexer;
+        private PanSteroIndexer m_panSteroIndexer;
+        private SpatialBlendIndexer m_spatialBlendIndexer;
+        private ReverbZoneMixIndexer m_reverbZoneMixIndexer;
 
-        private DopplerLevelIndexer m_dopplerLevelIndexer = new();
-        private SpreadIndexer m_SpreadIndexer = new();
-        private RolloffModeIndexer m_rolloffModeIndexer = new();
-        private MinDistanceIndexer m_minDistanceIndexer = new();
-        private MaxDistanceIndexer m_maxDistanceIndexer = new();
+        private DopplerLevelIndexer m_dopplerLevelIndexer;
+        private SpreadIndexer m_SpreadIndexer;
+        private RolloffModeIndexer m_rolloffModeIndexer;
+        private MinDistanceIndexer m_minDistanceIndexer;
+        private MaxDistanceIndexer m_maxDistanceIndexer;
 
-        private PositionIndexer m_positionIndexer = new();
+        private PositionIndexer m_positionIndexer;
 
-        private IsPlayingIndexer m_isPlayingIndexer = new();
-        private LengthIndexer m_lengthIndexer = new();
-        private TimeIndexer m_timeIndexer = new();
-
-        #region 对外公开
-        public static BypassEffectsIndexer BypassEffects { get => instance.m_bypassEffectsIndexer; }
-        public static BypassListenerEffectsIndexer BypassListenerEffects { get => instance.m_bypassListenerEffectsIndexer; }
-        public static BypassReverbZonesIndexer BypassReverbZones { get => instance.m_bypassReverbZonesIndexer; }
-
-        public static VolumeIndexer Volume { get => instance.m_volumeIndexer; }
-        public static PitchIndexer Pitch { get => instance.m_pitchIndexer; }
-        public static PanSteroIndexer PanStero { get => instance.m_panSteroIndexer; }
-        public static SpatialBlendIndexer SpatialBlend { get => instance.m_spatialBlendIndexer; }
-        public static ReverbZoneMixIndexer ReverbZoneMix { get => instance.m_reverbZoneMixIndexer; }
-
-        public static DopplerLevelIndexer DopplerLevel { get => instance.m_dopplerLevelIndexer; }
-        public static SpreadIndexer Spread { get => instance.m_SpreadIndexer; }
-        public static RolloffModeIndexer RolloffMode { get => instance.m_rolloffModeIndexer; }
-        public static MinDistanceIndexer MinDistance { get => instance.m_minDistanceIndexer; }
-        public static MaxDistanceIndexer MaxDistance { get => instance.m_maxDistanceIndexer; }
-
-        public static PositionIndexer Position { get => instance.m_positionIndexer; }
-
-        public static IsPlayingIndexer IsPlaying { get => instance.m_isPlayingIndexer; }
-        public static LengthIndexer Length { get => instance.m_lengthIndexer; }
-        public static TimeIndexer Time { get => instance.m_timeIndexer; }
+        private IsPlayingIndexer m_isPlayingIndexer;
+        private LengthIndexer m_lengthIndexer;
+        private TimeIndexer m_timeIndexer;
         #endregion
 
         #endregion
@@ -124,10 +101,10 @@ namespace Purpaca
         /// <summary>
         /// 其它音频播放音量
         /// </summary>
-        public static float OtherVolume 
+        public static float OtherVolume
         {
             get => instance.m_otherVolume;
-            set 
+            set
             {
                 instance.m_otherVolume = Mathf.Clamp01(value);
                 float db = Convert01ToDB(value);
@@ -152,9 +129,81 @@ namespace Purpaca
             get => instance.m_maxPooledHandleCount;
             set => instance.m_maxPooledHandleCount = Mathf.Max(0, value);
         }
+
+        #region 索引器
+        public static BypassEffectsIndexer BypassEffects { get => instance.m_bypassEffectsIndexer; }
+        public static BypassListenerEffectsIndexer BypassListenerEffects { get => instance.m_bypassListenerEffectsIndexer; }
+        public static BypassReverbZonesIndexer BypassReverbZones { get => instance.m_bypassReverbZonesIndexer; }
+
+        public static VolumeIndexer Volume { get => instance.m_volumeIndexer; }
+        public static PitchIndexer Pitch { get => instance.m_pitchIndexer; }
+        public static PanSteroIndexer PanStero { get => instance.m_panSteroIndexer; }
+        public static SpatialBlendIndexer SpatialBlend { get => instance.m_spatialBlendIndexer; }
+        public static ReverbZoneMixIndexer ReverbZoneMix { get => instance.m_reverbZoneMixIndexer; }
+
+        public static DopplerLevelIndexer DopplerLevel { get => instance.m_dopplerLevelIndexer; }
+        public static SpreadIndexer Spread { get => instance.m_SpreadIndexer; }
+        public static RolloffModeIndexer RolloffMode { get => instance.m_rolloffModeIndexer; }
+        public static MinDistanceIndexer MinDistance { get => instance.m_minDistanceIndexer; }
+        public static MaxDistanceIndexer MaxDistance { get => instance.m_maxDistanceIndexer; }
+
+        public static PositionIndexer Position { get => instance.m_positionIndexer; }
+
+        public static IsPlayingIndexer IsPlaying { get => instance.m_isPlayingIndexer; }
+        public static LengthIndexer Length { get => instance.m_lengthIndexer; }
+        public static TimeIndexer Time { get => instance.m_timeIndexer; }
+        #endregion
+
         #endregion
 
         #region Public 方法
+        /// <summary>
+        /// 创建一个音频播放句柄，并立即开始播放
+        /// </summary>
+        /// <param name="audioClip">要用于播放的AudioClip</param>
+        /// <returns>音频播放句柄的唯一标识码，可用于之后对音频播放句柄进行访问和操作</returns>
+        public static string Play(AudioClip audioClip, UnityAction callback = null) 
+        {
+            return Play(audioClip, 0, 1.0f, AudioOutputChannel.Other, callback);
+        }
+
+        /// <summary>
+        /// 创建一个音频播放句柄，并立即开始播放
+        /// </summary>
+        /// <param name="audioClip">要用于播放的AudioClip</param>
+        /// <param name="loops">在播放一次的基础上额外循环播放的次数。如果此值为负，则永久循环播放</param>
+        /// <param name="callback">当此音频播放句柄播放完毕后的回调方法</param>
+        /// <returns>音频播放句柄的唯一标识码，可用于之后对音频播放句柄进行访问和操作</returns>
+        public static string Play(AudioClip audioClip, int loops, UnityAction callback = null)
+        {
+            return Play(audioClip, loops, 1.0f, AudioOutputChannel.Other, callback);
+        }
+
+        /// <summary>
+        /// 创建一个音频播放句柄，并立即开始播放
+        /// </summary>
+        /// <param name="audioClip">要用于播放的AudioClip</param>
+        /// <param name="channel">此音频播放句柄的音频输出频道</param>
+        /// <param name="callback">当此音频播放句柄播放完毕后的回调方法</param>
+        /// <returns>音频播放句柄的唯一标识码，可用于之后对音频播放句柄进行访问和操作</returns>
+        public static string Play(AudioClip audioClip, AudioOutputChannel channel, UnityAction callback = null) 
+        {
+            return Play(audioClip, 0, 1.0f, channel, callback);
+        }
+
+        /// <summary>
+        /// 创建一个音频播放句柄，并立即开始播放
+        /// </summary>
+        /// <param name="audioClip">要用于播放的AudioClip</param>
+        /// <param name="loops">在播放一次的基础上额外循环播放的次数。如果此值为负，则永久循环播放</param>
+        /// <param name="channel">此音频播放句柄的音频输出频道</param>
+        /// <param name="callback">当此音频播放句柄播放完毕后的回调方法</param>
+        /// <returns>音频播放句柄的唯一标识码，可用于之后对音频播放句柄进行访问和操作</returns>
+        public static string Play(AudioClip audioClip, int loops, AudioOutputChannel channel, UnityAction callback = null)
+        {
+            return Play(audioClip, loops, 1.0f, channel, callback);
+        }
+
         /// <summary>
         /// 创建一个音频播放句柄，并立即开始播放
         /// </summary>
@@ -164,10 +213,33 @@ namespace Purpaca
         /// <param name="channel">此音频播放句柄的音频输出频道</param>
         /// <param name="callback">当此音频播放句柄播放完毕后的回调方法</param>
         /// <returns>音频播放句柄的唯一标识码，可用于之后对音频播放句柄进行访问和操作</returns>
-        public static string Play(AudioClip audioClip, int loops = 0, float volume = 1.0f, AudioOutputChannel channel = AudioOutputChannel.Other, UnityAction callback = null)
+        public static string Play(AudioClip audioClip, int loops, float volume, AudioOutputChannel channel, UnityAction callback = null)
         {
             AudioSequence sequence = AudioSequence.CreateAudioSequence(new AudioSequence.Clip(audioClip, loops));
             return Play(sequence, volume, channel, callback);
+        }
+
+        /// <summary>
+        /// 创建一个音频播放句柄，并立即开始播放
+        /// </summary>
+        /// <param name="sequence">要用于播放的音频序列</param>
+        /// <param name="callback">当此音频播放句柄播放完毕后的回调方法</param>
+        /// <returns>音频播放句柄的唯一标识码，可用于之后对音频播放句柄进行访问和操作</returns>
+        public static string Play(AudioSequence sequence, UnityAction callback = null)
+        {
+            return Play(sequence, 1.0f, AudioOutputChannel.Other, callback);
+        }
+
+        /// <summary>
+        /// 创建一个音频播放句柄，并立即开始播放
+        /// </summary>
+        /// <param name="sequence">要用于播放的音频序列</param>
+        /// <param name="channel">此音频播放句柄的音频输出频道</param>
+        /// <param name="callback">当此音频播放句柄播放完毕后的回调方法</param>
+        /// <returns>音频播放句柄的唯一标识码，可用于之后对音频播放句柄进行访问和操作</returns>
+        public static string Play(AudioSequence sequence, AudioOutputChannel channel, UnityAction callback = null)
+        {
+            return Play(sequence, 1.0f, channel, callback);
         }
 
         /// <summary>
@@ -178,7 +250,7 @@ namespace Purpaca
         /// <param name="channel">此音频播放句柄的音频输出频道</param>
         /// <param name="callback">当此音频播放句柄播放完毕后的回调方法</param>
         /// <returns>音频播放句柄的唯一标识码，可用于之后对音频播放句柄进行访问和操作</returns>
-        public static string Play(AudioSequence sequence, float volume = 1.0f, AudioOutputChannel channel = AudioOutputChannel.Other, UnityAction callback = null)
+        public static string Play(AudioSequence sequence, float volume, AudioOutputChannel channel, UnityAction callback = null)
         {
             string identity = Guid.NewGuid().ToString();
 
@@ -203,7 +275,29 @@ namespace Purpaca
         /// 一次性播放音频
         /// </summary>
         /// <param name="audioClip">要用于播放的AudioClip</param>
+        /// <param name="callback">当播放完毕后的回调方法</param>
+        public static void PlayOneShot(AudioClip audioClip, UnityAction callback = null)
+        {
+            PlayOneShot(audioClip, 1.0f, AudioOutputChannel.Other, callback);
+        }
+
+        /// <summary>
+        /// 一次性播放音频
+        /// </summary>
+        /// <param name="audioClip">要用于播放的AudioClip</param>
+        /// <param name="channel">音频输出频道</param>
+        /// <param name="callback">当播放完毕后的回调方法</param>
+        public static void PlayOneShot(AudioClip audioClip, AudioOutputChannel channel, UnityAction callback = null)
+        {
+            PlayOneShot(audioClip, 1.0f, channel, callback);
+        }
+
+        /// <summary>
+        /// 一次性播放音频
+        /// </summary>
+        /// <param name="audioClip">要用于播放的AudioClip</param>
         /// <param name="volume">播放音量</param>
+        /// <param name="channel">音频输出频道</param>
         /// <param name="callback">当播放完毕后的回调方法</param>
         public static void PlayOneShot(AudioClip audioClip, float volume = 1.0f, AudioOutputChannel channel = AudioOutputChannel.Other, UnityAction callback = null)
         {
@@ -215,13 +309,35 @@ namespace Purpaca
         /// 一次性播放音频
         /// </summary>
         /// <param name="sequence">要用于播放的音频序列</param>
+        /// <param name="callback">当播放完毕后的回调方法</param>
+        public static void PlayOneShot(AudioSequence sequence, UnityAction callback = null)
+        {
+            PlayOneShot(sequence, 1.0f, AudioOutputChannel.Other, callback);
+        }
+
+        /// <summary>
+        /// 一次性播放音频
+        /// </summary>
+        /// <param name="sequence">要用于播放的音频序列</param>
+        /// <param name="channel">音频输出频道</param>
+        /// <param name="callback">当播放完毕后的回调方法</param>
+        public static void PlayOneShot(AudioSequence sequence, AudioOutputChannel channel, UnityAction callback = null)
+        {
+            PlayOneShot(sequence, 1.0f, channel, callback);
+        }
+
+        /// <summary>
+        /// 一次性播放音频
+        /// </summary>
+        /// <param name="sequence">要用于播放的音频序列</param>
         /// <param name="volume">播放音量</param>
+        /// <param name="channel">音频输出频道</param>
         /// <param name="callback">当播放完毕后的回调方法</param>
         public static void PlayOneShot(AudioSequence sequence, float volume = 1.0f, AudioOutputChannel channel = AudioOutputChannel.Other, UnityAction callback = null)
         {
-            foreach(var clip in sequence.Clips) 
+            foreach (var clip in sequence.Clips)
             {
-                if (clip.Loops < 0) 
+                if (clip.Loops < 0)
                 {
                     //需要英语化
                     Debug.LogError($"不能一次性播放此序列\"{sequence.name}\"，因为它是无限循环的！");
@@ -254,13 +370,10 @@ namespace Purpaca
         /// </summary>
         public static void Replay(string guid)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if(CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                instance.m_managedHandles[guid].Play();
             }
-
-            instance.m_managedHandles[guid].Play();
         }
 
         /// <summary>
@@ -268,13 +381,10 @@ namespace Purpaca
         /// </summary>
         public static void Stop(string guid)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if (CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                instance.m_managedHandles[guid].Stop();
             }
-
-            instance.m_managedHandles[guid].Stop();
         }
 
         /// <summary>
@@ -282,13 +392,10 @@ namespace Purpaca
         /// </summary>
         public static void Pause(string guid)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if (CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                instance.m_managedHandles[guid].Pause();
             }
-
-            instance.m_managedHandles[guid].Pause();
         }
 
         /// <summary>
@@ -296,13 +403,10 @@ namespace Purpaca
         /// </summary>
         public static void UnPause(string guid)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if(CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                instance.m_managedHandles[guid].Resume();
             }
-
-            instance.m_managedHandles[guid].Resume();
         }
 
         /// <summary>
@@ -310,13 +414,10 @@ namespace Purpaca
         /// </summary>
         public static void AddOnPlayFinishedCallback(string guid, UnityAction callback)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if (!CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                instance.m_managedHandles[guid].AddOnFinishedListener(callback);
             }
-
-            instance.m_managedHandles[guid].AddOnFinishedListener(callback);
         }
 
         /// <summary>
@@ -324,13 +425,10 @@ namespace Purpaca
         /// </summary>
         public static void RemoveOnPlayFinishedCallback(string guid, UnityAction callback)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if(CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                instance.m_managedHandles[guid].RemoveOnFinishedListener(callback);
             }
-
-            instance.m_managedHandles[guid].RemoveOnFinishedListener(callback);
         }
 
         /// <summary>
@@ -338,13 +436,10 @@ namespace Purpaca
         /// </summary>
         public static void ClearOnPlayFinishedCallback(string guid)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if (CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                instance.m_managedHandles[guid].ClearOnFinishedListener();
             }
-
-            instance.m_managedHandles[guid].ClearOnFinishedListener();
         }
 
         /// <summary>
@@ -352,27 +447,24 @@ namespace Purpaca
         /// </summary>
         public static void SetOutputChanel(string guid, AudioOutputChannel chanel)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if(CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                AudioMixerGroup mixerGroup;
+                switch (chanel)
+                {
+                    case AudioOutputChannel.Music:
+                        mixerGroup = instance._musicGroup;
+                        break;
+                    case AudioOutputChannel.Sound:
+                        mixerGroup = instance._soundGroup;
+                        break;
+                    case AudioOutputChannel.Other:
+                    default:
+                        mixerGroup = instance._otherGroup;
+                        break;
+                }
+                instance.m_managedHandles[guid].OutputAudioMixerGroup = mixerGroup;
             }
-
-            AudioMixerGroup mixerGroup;
-            switch (chanel)
-            {
-                case AudioOutputChannel.Music:
-                    mixerGroup = instance._musicGroup;
-                    break;
-                case AudioOutputChannel.Sound:
-                    mixerGroup = instance._soundGroup;
-                    break;
-                case AudioOutputChannel.Other:
-                default:
-                    mixerGroup = instance._masterGroup;
-                    break;
-            }
-            instance.m_managedHandles[guid].OutputAudioMixerGroup = mixerGroup;
         }
 
         /// <summary>
@@ -392,7 +484,7 @@ namespace Purpaca
                     break;
                 case AudioOutputChannel.Other:
                 default:
-                    mixerGroup = instance._masterGroup;
+                    mixerGroup = instance._otherGroup;
                     break;
             }
 
@@ -416,7 +508,7 @@ namespace Purpaca
                     break;
                 case AudioOutputChannel.Other:
                 default:
-                    mixerGroup = instance._masterGroup;
+                    mixerGroup = instance._otherGroup;
                     break;
             }
 
@@ -428,15 +520,12 @@ namespace Purpaca
         /// </summary>
         public static void Free(string guid)
         {
-            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            if(CheckGuidValid(guid))
             {
-                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                return;
+                Handle handle = instance.m_managedHandles[guid];
+                handle.Free();
+                instance.m_managedHandles.Remove(guid);
             }
-
-            Handle handle = instance.m_managedHandles[guid];
-            handle.Free();
-            instance.m_managedHandles.Remove(guid);
         }
 
         /// <summary>
@@ -453,12 +542,20 @@ namespace Purpaca
 
             if (freeOneShot)
             {
-                foreach (var handle in instance.m_oneShotHandles)
-                {
-                    handle.Free();
-                }
-                instance.m_oneShotHandles.Clear();
+                FreeAllOneShot();
             }
+        }
+
+        /// <summary>
+        /// 释放全部的一次性的音频播放句柄
+        /// </summary>
+        public static void FreeAllOneShot()
+        {
+            foreach (var handle in instance.m_oneShotHandles)
+            {
+                handle.Free();
+            }
+            instance.m_oneShotHandles.Clear();
         }
         #endregion
 
@@ -470,6 +567,20 @@ namespace Purpaca
         {
             value = value <= 0.0f ? 0.0001f : value;
             return Mathf.Log10(value) * 20.0f;
+        }
+
+        /// <summary>
+        /// 检查给定的唯一标识码是否对应有效的播放句柄
+        /// </summary>
+        /// <returns>给定的唯一标识码是否对应有效的播放句柄？</returns>
+        private static bool CheckGuidValid(string guid)
+        {
+            if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+            {
+                Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -573,6 +684,7 @@ namespace Purpaca
         #region Protected 方法
         protected override void OnInit()
         {
+            #region 加载默认的AudioMixer资产
             try
             {
                 _mixer = Resources.Load<AudioMixer>("Purpaca/AudioMixer");
@@ -585,17 +697,49 @@ namespace Purpaca
                 {
                     throw new Exception();
                 }
+
+                MasterVolume = 1.0f;
+                MusicVolume = 1.0f;
+                SoundVolume = 1.0f;
+                OtherVolume = 1.0f;
             }
             catch
             {
                 throw new NullReferenceException("Unable to load the preset AudioMixer asset or the asset is modified!");
             }
+            #endregion
 
+            #region 初始化容器
             m_pooledAudioSources = new List<AudioSource>();
             m_pooledAudioSources.AddRange(SpawnNewAudioSources(10));
             m_pooledHandles = new List<Handle>();
             m_managedHandles = new Dictionary<string, Handle>();
             m_oneShotHandles = new List<Handle>();
+            #endregion
+
+            #region 初始化索引器
+            m_bypassEffectsIndexer = new BypassEffectsIndexer(this);
+            m_bypassListenerEffectsIndexer = new BypassListenerEffectsIndexer(this);
+            m_bypassReverbZonesIndexer = new BypassReverbZonesIndexer(this);
+
+            m_volumeIndexer = new VolumeIndexer(this);
+            m_pitchIndexer = new PitchIndexer(this);
+            m_panSteroIndexer = new PanSteroIndexer(this);
+            m_spatialBlendIndexer = new SpatialBlendIndexer(this);
+            m_reverbZoneMixIndexer = new ReverbZoneMixIndexer(this);
+
+            m_dopplerLevelIndexer = new DopplerLevelIndexer(this);
+            m_SpreadIndexer = new SpreadIndexer(this);
+            m_rolloffModeIndexer = new RolloffModeIndexer(this);
+            m_minDistanceIndexer = new MinDistanceIndexer(this);
+            m_maxDistanceIndexer = new MaxDistanceIndexer(this);
+
+            m_positionIndexer = new PositionIndexer(this);
+
+            m_isPlayingIndexer = new IsPlayingIndexer(this);
+            m_lengthIndexer = new LengthIndexer(this);
+            m_timeIndexer = new TimeIndexer(this);
+            #endregion
         }
         #endregion
 
@@ -1014,9 +1158,9 @@ namespace Purpaca
             //TODO
             //TODO
             //TODO
-            public float Time 
+            public float Time
             {
-                get 
+                get
                 {
                     if (_disposed)
                     {
@@ -1028,7 +1172,7 @@ namespace Purpaca
                     //TODO
                     return 0.0f;
                 }
-                set 
+                set
                 {
                     if (_disposed)
                     {
@@ -1225,7 +1369,7 @@ namespace Purpaca
                     do
                     {
                         m_audioSource.Play();
-                        while (m_audioSource.isPlaying || _isPaused )
+                        while (m_audioSource.isPlaying || _isPaused)
                         {
                             yield return null;
                         }
@@ -1245,411 +1389,683 @@ namespace Purpaca
         }
 
         #region 音频播放句柄属性索引器
+        /// <summary>
+        /// 音频播放句柄的是否忽略混响效果的属性索引器代理
+        /// </summary>
         public class BypassEffectsIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public BypassEffectsIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public bool this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return false;
                     }
-                    return instance.m_managedHandles[guid].ByPassEffects;
+                    return manager.m_managedHandles[guid].ByPassEffects;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].ByPassEffects = value;
+                    manager.m_managedHandles[guid].ByPassEffects = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的是否忽略场景上 <see cref="AudioListener"/> 实例设置的混响效果的属性索引器代理
+        /// </summary>
         public class BypassListenerEffectsIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public BypassListenerEffectsIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public bool this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return false;
                     }
-                    return instance.m_managedHandles[guid].BypassListenerEffects;
+                    return manager.m_managedHandles[guid].BypassListenerEffects;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].BypassListenerEffects = value;
+                    manager.m_managedHandles[guid].BypassListenerEffects = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的是否忽略混响区域的属性索引器代理
+        /// </summary>
         public class BypassReverbZonesIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public BypassReverbZonesIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public bool this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return false;
                     }
-                    return instance.m_managedHandles[guid].BypassReverbZones;
+                    return manager.m_managedHandles[guid].BypassReverbZones;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].BypassReverbZones = value;
+                    manager.m_managedHandles[guid].BypassReverbZones = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的播放音量的属性索引器代理代理
+        /// </summary>
         public class VolumeIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public VolumeIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].Volume;
+                    return manager.m_managedHandles[guid].Volume;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].Volume = value;
+                    manager.m_managedHandles[guid].Volume = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的音调的属性索引器代理
+        /// </summary>
         public class PitchIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public PitchIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].Pitch;
+                    return manager.m_managedHandles[guid].Pitch;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].Pitch = value;
+                    manager.m_managedHandles[guid].Pitch = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的声道平衡值的属性索引器代理
+        /// </summary>
         public class PanSteroIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public PanSteroIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].PanStero;
+                    return manager.m_managedHandles[guid].PanStero;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].PanStero = value;
+                    manager.m_managedHandles[guid].PanStero = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的空间混合值的属性索引器代理
+        /// </summary>
         public class SpatialBlendIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public SpatialBlendIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].SpatialBlend;
+                    return manager.m_managedHandles[guid].SpatialBlend;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].SpatialBlend = value;
+                    manager.m_managedHandles[guid].SpatialBlend = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的混响区域混合值的属性索引器代理
+        /// </summary>
         public class ReverbZoneMixIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public ReverbZoneMixIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].ReverbZoneMix;
+                    return manager.m_managedHandles[guid].ReverbZoneMix;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].ReverbZoneMix = value;
+                    manager.m_managedHandles[guid].ReverbZoneMix = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的多普勒效应级别值的属性索引器代理
+        /// </summary>
         public class DopplerLevelIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public DopplerLevelIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].DopplerLevel;
+                    return manager.m_managedHandles[guid].DopplerLevel;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].DopplerLevel = value;
+                    manager.m_managedHandles[guid].DopplerLevel = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的多声道传播角度的属性索引器代理
+        /// </summary>
         public class SpreadIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public SpreadIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].Spread;
+                    return manager.m_managedHandles[guid].Spread;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].Spread = value;
+                    manager.m_managedHandles[guid].Spread = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的音频衰减模式的属性索引器代理
+        /// </summary>
         public class RolloffModeIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public RolloffModeIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public AudioRolloffMode this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return AudioRolloffMode.Custom;
                     }
-                    return instance.m_managedHandles[guid].RolloffMode;
+                    return manager.m_managedHandles[guid].RolloffMode;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].RolloffMode = value;
+                    manager.m_managedHandles[guid].RolloffMode = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的最小播放距离的属性索引器代理
+        /// </summary>
         public class MinDistanceIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public MinDistanceIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].MinDistance;
+                    return manager.m_managedHandles[guid].MinDistance;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].MinDistance = value;
+                    manager.m_managedHandles[guid].MinDistance = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的最大播放距离的属性索引器代理
+        /// </summary>
         public class MaxDistanceIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public MaxDistanceIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].MaxDistance;
+                    return manager.m_managedHandles[guid].MaxDistance;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].MaxDistance = value;
+                    manager.m_managedHandles[guid].MaxDistance = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄在世界空间下位置坐标的属性索引器代理
+        /// </summary>
         public class PositionIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public PositionIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public Vector3 this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return Vector3.zero;
                     }
-                    return instance.m_managedHandles[guid].Position;
+                    return manager.m_managedHandles[guid].Position;
                 }
                 set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].Position = value;
+                    manager.m_managedHandles[guid].Position = value;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄当前播放状态的属性索引器代理
+        /// </summary>
         public class IsPlayingIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public IsPlayingIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public bool this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return false;
                     }
-                    return instance.m_managedHandles[guid].IsPlaying;
+                    return manager.m_managedHandles[guid].IsPlaying;
                 }
             }
+            #endregion
         }
 
+        /// <summary>
+        /// 音频播放句柄的音频序列时长的属性索引器代理
+        /// </summary>
         public class LengthIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public LengthIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].Length;
+                    return manager.m_managedHandles[guid].Length;
                 }
             }
+            #endregion
         }
 
-        public class TimeIndexer 
+        /// <summary>
+        /// 音频播放句柄的当前播放时间的属性索引器代理
+        /// </summary>
+        public class TimeIndexer
         {
+            #region 字段
+            private AudioManager manager;
+            #endregion
+
+            #region 构造器
+            public TimeIndexer(AudioManager manager)
+            {
+                this.manager = manager;
+            }
+            #endregion
+
+            #region 索引器
             public float this[string guid]
             {
                 get
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return float.NaN;
                     }
-                    return instance.m_managedHandles[guid].Time;
+                    return manager.m_managedHandles[guid].Time;
                 }
-                set 
+                set
                 {
-                    if (string.IsNullOrEmpty(guid) || !instance.m_managedHandles.ContainsKey(guid))
+                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
                     {
                         Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
                         return;
                     }
-                    instance.m_managedHandles[guid].Time = value;
+                    manager.m_managedHandles[guid].Time = value;
                 }
             }
+            #endregion
         }
         #endregion
 
