@@ -30,49 +30,50 @@ namespace Purpaca
         #endregion
 
         #region 索引器
-        private static BypassEffectsIndexer m_bypassEffectsIndexer = new();
-        private static BypassListenerEffectsIndexer m_bypassListenerEffectsIndexer = new();
-        private static BypassReverbZonesIndexer m_bypassReverbZonesIndexer = new();
+        private BypassEffectsIndexer m_bypassEffectsIndexer = new();
+        private BypassListenerEffectsIndexer m_bypassListenerEffectsIndexer = new();
+        private BypassReverbZonesIndexer m_bypassReverbZonesIndexer = new();
 
-        private static VolumeIndexer m_volumeIndexer = new();
-        private static PitchIndexer m_pitchIndexer = new();
-        private static PanSteroIndexer m_panSteroIndexer = new();
-        private static SpatialBlendIndexer m_spatialBlendIndexer = new();
-        private static ReverbZoneMixIndexer m_reverbZoneMixIndexer = new();
+        private VolumeIndexer m_volumeIndexer = new();
+        private PitchIndexer m_pitchIndexer = new();
+        private PanSteroIndexer m_panSteroIndexer = new();
+        private SpatialBlendIndexer m_spatialBlendIndexer = new();
+        private ReverbZoneMixIndexer m_reverbZoneMixIndexer = new();
 
-        private static DopplerLevelIndexer m_dopplerLevelIndexer = new();
-        private static SpreadIndexer m_SpreadIndexer = new();
-        private static RolloffModeIndexer m_rolloffModeIndexer = new();
-        private static MinDistanceIndexer m_minDistanceIndexer = new();
-        private static MaxDistanceIndexer m_maxDistanceIndexer = new();
+        private DopplerLevelIndexer m_dopplerLevelIndexer = new();
+        private SpreadIndexer m_SpreadIndexer = new();
+        private RolloffModeIndexer m_rolloffModeIndexer = new();
+        private MinDistanceIndexer m_minDistanceIndexer = new();
+        private MaxDistanceIndexer m_maxDistanceIndexer = new();
 
-        private static PositionIndexer m_positionIndexer = new();
+        private PositionIndexer m_positionIndexer = new();
 
-        private static IsPlayingIndexer m_isPlayingIndexer = new();
-        private static LengthIndexer m_lengthIndexer = new();
-        //private static TimeIndexer m_timeIndexer = new();
+        private IsPlayingIndexer m_isPlayingIndexer = new();
+        private LengthIndexer m_lengthIndexer = new();
+        private TimeIndexer m_timeIndexer = new();
+
         #region 对外公开
-        public static BypassEffectsIndexer BypassEffects { get => m_bypassEffectsIndexer; }
-        public static BypassListenerEffectsIndexer BypassListenerEffects { get => m_bypassListenerEffectsIndexer; }
-        public static BypassReverbZonesIndexer BypassReverbZones { get => m_bypassReverbZonesIndexer; }
+        public static BypassEffectsIndexer BypassEffects { get => instance.m_bypassEffectsIndexer; }
+        public static BypassListenerEffectsIndexer BypassListenerEffects { get => instance.m_bypassListenerEffectsIndexer; }
+        public static BypassReverbZonesIndexer BypassReverbZones { get => instance.m_bypassReverbZonesIndexer; }
 
-        public static VolumeIndexer Volume { get => m_volumeIndexer; }
-        public static PitchIndexer Pitch { get => m_pitchIndexer; }
-        public static PanSteroIndexer PanStero { get => m_panSteroIndexer; }
-        public static SpatialBlendIndexer SpatialBlend { get => m_spatialBlendIndexer; }
-        public static ReverbZoneMixIndexer ReverbZoneMix { get => m_reverbZoneMixIndexer; }
+        public static VolumeIndexer Volume { get => instance.m_volumeIndexer; }
+        public static PitchIndexer Pitch { get => instance.m_pitchIndexer; }
+        public static PanSteroIndexer PanStero { get => instance.m_panSteroIndexer; }
+        public static SpatialBlendIndexer SpatialBlend { get => instance.m_spatialBlendIndexer; }
+        public static ReverbZoneMixIndexer ReverbZoneMix { get => instance.m_reverbZoneMixIndexer; }
 
-        public static DopplerLevelIndexer DopplerLevel { get => m_dopplerLevelIndexer; }
-        public static SpreadIndexer Spread { get => m_SpreadIndexer; }
-        public static RolloffModeIndexer RolloffMode { get => m_rolloffModeIndexer; }
-        public static MinDistanceIndexer MinDistance { get => m_minDistanceIndexer; }
-        public static MaxDistanceIndexer MaxDistance { get => m_maxDistanceIndexer; }
+        public static DopplerLevelIndexer DopplerLevel { get => instance.m_dopplerLevelIndexer; }
+        public static SpreadIndexer Spread { get => instance.m_SpreadIndexer; }
+        public static RolloffModeIndexer RolloffMode { get => instance.m_rolloffModeIndexer; }
+        public static MinDistanceIndexer MinDistance { get => instance.m_minDistanceIndexer; }
+        public static MaxDistanceIndexer MaxDistance { get => instance.m_maxDistanceIndexer; }
 
-        public static PositionIndexer Position { get => m_positionIndexer; }
+        public static PositionIndexer Position { get => instance.m_positionIndexer; }
 
-        public static IsPlayingIndexer IsPlaying { get => m_isPlayingIndexer; }
-        public static LengthIndexer Length { get => m_lengthIndexer; }
-        //public static TimeIndexer Time { get => m_timeIndexer; }
+        public static IsPlayingIndexer IsPlaying { get => instance.m_isPlayingIndexer; }
+        public static LengthIndexer Length { get => instance.m_lengthIndexer; }
+        public static TimeIndexer Time { get => instance.m_timeIndexer; }
         #endregion
 
         #endregion
@@ -1003,7 +1004,16 @@ namespace Purpaca
                 }
             }
 
-            /*
+            //TODO
+            //TODO
+            //TODO
+            //TODO
+            //TODO
+            //TODO
+            //TODO
+            //TODO
+            //TODO
+            //TODO
             public float Time 
             {
                 get 
@@ -1014,7 +1024,9 @@ namespace Purpaca
                         return float.NaN;
                     }
 
-
+                    //TODO
+                    //TODO
+                    return 0.0f;
                 }
                 set 
                 {
@@ -1024,10 +1036,10 @@ namespace Purpaca
                         return;
                     }
 
-
+                    //TODO
+                    //TODO
                 }
             }
-            */
             #endregion
 
             #region Public 方法
@@ -1615,8 +1627,6 @@ namespace Purpaca
             }
         }
 
-        /*TODO 实现控制播放的时间进度，难点在于无限循环的序列的播放时间的解析和计算*/
-        /*
         public class TimeIndexer 
         {
             public float this[string guid]
@@ -1640,7 +1650,7 @@ namespace Purpaca
                     instance.m_managedHandles[guid].Time = value;
                 }
             }
-        }*/
+        }
         #endregion
 
         #endregion
