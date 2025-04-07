@@ -1,4 +1,3 @@
-using UnityEngine;
 using UnityEditor;
 
 namespace Purpaca.Editor.Audio
@@ -6,14 +5,14 @@ namespace Purpaca.Editor.Audio
     [CustomEditor(typeof(AudioSequence))]
     public class AudioSequenceEditor : UnityEditor.Editor
     {
+        #region 字段
         private SerializedProperty m_clipsProperty;
-
-        private void OnEnable()
-        {
-            m_clipsProperty = serializedObject.FindProperty("m_clips");
-        }
+        #endregion
 
         #region Public 方法
+        /// <summary>
+        /// 创建一个新的 <see cref="AudioSequence"/> 类型的Asset
+        /// </summary>
         [MenuItem("Purpaca/Audio/Create AudioSequence Asset")]
         [MenuItem("Assets/Create/Purpaca/Audio/AudioSequence Asset")]
         public static void CreateAudioSequenceAsset()
@@ -45,6 +44,13 @@ namespace Purpaca.Editor.Audio
         }
         #endregion
 
+        #endregion
+
+        #region Unity 消息
+        private void OnEnable()
+        {
+            m_clipsProperty = serializedObject.FindProperty("m_clips");
+        }
         #endregion
     }
 }

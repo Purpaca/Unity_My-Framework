@@ -31,7 +31,6 @@ namespace Purpaca
 
         #region 索引器
         private BypassEffectsIndexer m_bypassEffectsIndexer;
-        private BypassListenerEffectsIndexer m_bypassListenerEffectsIndexer;
         private BypassReverbZonesIndexer m_bypassReverbZonesIndexer;
 
         private VolumeIndexer m_volumeIndexer;
@@ -131,26 +130,74 @@ namespace Purpaca
         }
 
         #region 索引器
+        /// <summary>
+        /// 是否忽略混响效果？ (效果器组件或全局的 <see cref="AudioListener"/> 上设置的效果器).
+        /// </summary>
         public static BypassEffectsIndexer BypassEffects { get => instance.m_bypassEffectsIndexer; }
-        public static BypassListenerEffectsIndexer BypassListenerEffects { get => instance.m_bypassListenerEffectsIndexer; }
+        /// <summary>
+        /// 是否受 ReverbZones 的影响？
+        /// </summary>
         public static BypassReverbZonesIndexer BypassReverbZones { get => instance.m_bypassReverbZonesIndexer; }
 
+        /// <summary>
+        /// 播放音量（0.0f~1.0f）
+        /// </summary>
         public static VolumeIndexer Volume { get => instance.m_volumeIndexer; }
+        /// <summary>
+        /// 音频播放的声调
+        /// </summary>
         public static PitchIndexer Pitch { get => instance.m_pitchIndexer; }
+        /// <summary>
+        /// 向左声道（0~0.5）或向右声道（0.5~1.0）移动来播放音频
+        /// </summary>
         public static PanSteroIndexer PanStero { get => instance.m_panSteroIndexer; }
+        /// <summary>
+        /// 受3D空间化计算（衰减、多普勒等）的影响程度。值为0则为完全2D音频播放，值为1.0则为完全3D音频播放。
+        /// </summary>
         public static SpatialBlendIndexer SpatialBlend { get => instance.m_spatialBlendIndexer; }
+        /// <summary>
+        /// ReverbZone的混合程度。
+        /// </summary>
         public static ReverbZoneMixIndexer ReverbZoneMix { get => instance.m_reverbZoneMixIndexer; }
 
+        /// <summary>
+        /// 音频播放受多普勒效果影响的程度。
+        /// </summary>
         public static DopplerLevelIndexer DopplerLevel { get => instance.m_dopplerLevelIndexer; }
+        /// <summary>
+        /// 设置扬声器空间中3d立体声或多声道声音的扩散角度（以度为单位）
+        /// </summary>
         public static SpreadIndexer Spread { get => instance.m_SpreadIndexer; }
+        /// <summary>
+        /// 音频随距离衰减的模式（<see cref="AudioRolloffMode"/> 类型的枚举值）
+        /// </summary>
         public static RolloffModeIndexer RolloffMode { get => instance.m_rolloffModeIndexer; }
+        /// <summary>
+        /// 音频的音量停止增大的距离
+        /// </summary>
         public static MinDistanceIndexer MinDistance { get => instance.m_minDistanceIndexer; }
+        /// <summary>
+        /// 音频变得听不见或停止衰减的距离，具体效果取决于 <see cref="RolloffMode"/>
+        /// </summary>
         public static MaxDistanceIndexer MaxDistance { get => instance.m_maxDistanceIndexer; }
 
+        /// <summary>
+        /// 音频在世界坐标中播放的位置
+        /// </summary>
         public static PositionIndexer Position { get => instance.m_positionIndexer; }
 
+        /// <summary>
+        /// 当前音频是否正在播放？
+        /// </summary>
         public static IsPlayingIndexer IsPlaying { get => instance.m_isPlayingIndexer; }
+        /// <summary>
+        /// 音频的总时长
+        /// </summary>
         public static LengthIndexer Length { get => instance.m_lengthIndexer; }
+        /// <summary>
+        /// 音频的当前播放时间
+        /// </summary>
+        [Obsolete("尚不支持的功能！", true)]
         public static TimeIndexer Time { get => instance.m_timeIndexer; }
         #endregion
 
@@ -263,7 +310,7 @@ namespace Purpaca
             Handle handle = instance.GetFreeHandle(sequence, source, volume);
             handle.AddOnFinishedListener(callback);
 
-            SetOutputChanel(ref source, channel);
+            SetOutputChannel(ref source, channel);
 
             instance.m_managedHandles.Add(identity, handle);
             handle.Play();
@@ -339,7 +386,7 @@ namespace Purpaca
             {
                 if (clip.Loops < 0)
                 {
-                    //需要英语化
+                    // TODO：需要英语化
                     Debug.LogError($"不能一次性播放此序列\"{sequence.name}\"，因为它是无限循环的！");
                     return;
                 }
@@ -359,7 +406,7 @@ namespace Purpaca
                 instance.m_oneShotHandles.Remove(handle);
             });
 
-            SetOutputChanel(ref source, channel);
+            SetOutputChannel(ref source, channel);
 
             instance.m_oneShotHandles.Add(handle);
             handle.Play();
@@ -445,36 +492,22 @@ namespace Purpaca
         /// <summary>
         /// 设置唯一标识码对应音频播放句柄的音频输出频道
         /// </summary>
-        public static void SetOutputChanel(string guid, AudioOutputChannel chanel)
+        public static void SetOutputChannel(string guid, AudioOutputChannel channel)
         {
             if(CheckGuidValid(guid))
             {
-                AudioMixerGroup mixerGroup;
-                switch (chanel)
-                {
-                    case AudioOutputChannel.Music:
-                        mixerGroup = instance._musicGroup;
-                        break;
-                    case AudioOutputChannel.Sound:
-                        mixerGroup = instance._soundGroup;
-                        break;
-                    case AudioOutputChannel.Other:
-                    default:
-                        mixerGroup = instance._otherGroup;
-                        break;
-                }
-                instance.m_managedHandles[guid].OutputAudioMixerGroup = mixerGroup;
+                instance.m_managedHandles[guid].OutputChannel = channel;
             }
         }
 
         /// <summary>
         /// 设置给定的AudioSource的音频输出频道
         /// </summary>
-        public static void SetOutputChanel(ref AudioSource audioSource, AudioOutputChannel chanel)
+        public static void SetOutputChannel(ref AudioSource audioSource, AudioOutputChannel channel)
         {
             AudioMixerGroup mixerGroup;
 
-            switch (chanel)
+            switch (channel)
             {
                 case AudioOutputChannel.Music:
                     mixerGroup = instance._musicGroup;
@@ -494,11 +527,11 @@ namespace Purpaca
         /// <summary>
         /// 设置给定的AudioMixer的音频输出频道
         /// </summary>
-        public static void SetOutputChanel(ref AudioMixer audioMixer, AudioOutputChannel chanel)
+        public static void SetOutputChannel(ref AudioMixer audioMixer, AudioOutputChannel channel)
         {
             AudioMixerGroup mixerGroup;
 
-            switch (chanel)
+            switch (channel)
             {
                 case AudioOutputChannel.Music:
                     mixerGroup = instance._musicGroup;
@@ -691,7 +724,7 @@ namespace Purpaca
                 _masterGroup = _mixer.FindMatchingGroups("Master")[0];
                 _musicGroup = _mixer.FindMatchingGroups("Master/Music")[0];
                 _soundGroup = _mixer.FindMatchingGroups("Master/Sound")[0];
-                _otherGroup = _mixer.FindMatchingGroups("Master/Sound/Other")[0];
+                _otherGroup = _mixer.FindMatchingGroups("Master/Other")[0];
 
                 if (_masterGroup == null || _musicGroup == null || _soundGroup == null || _otherGroup == null)
                 {
@@ -719,7 +752,6 @@ namespace Purpaca
 
             #region 初始化索引器
             m_bypassEffectsIndexer = new BypassEffectsIndexer(this);
-            m_bypassListenerEffectsIndexer = new BypassListenerEffectsIndexer(this);
             m_bypassReverbZonesIndexer = new BypassReverbZonesIndexer(this);
 
             m_volumeIndexer = new VolumeIndexer(this);
@@ -768,25 +800,51 @@ namespace Purpaca
             #endregion
 
             #region 属性
-            public AudioMixerGroup OutputAudioMixerGroup
+            /// <summary>
+            /// 音频句柄的输出频道
+            /// </summary>
+            public AudioOutputChannel OutputChannel
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle()) 
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return null;
+                        return AudioOutputChannel.Other;
                     }
-                    return m_audioSource.outputAudioMixerGroup;
+
+                    AudioOutputChannel output;
+                    if(m_audioSource.outputAudioMixerGroup == instance._soundGroup) 
+                    {
+                        output = AudioOutputChannel.Sound;
+                    }
+                    else if(m_audioSource.outputAudioMixerGroup == instance._musicGroup) 
+                    {
+                        output = AudioOutputChannel.Music;
+                    }
+                    else
+                    {
+                        output = AudioOutputChannel.Other;
+                    }
+                    
+                    return output;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle()) 
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        switch (value)
+                        {
+                            case AudioOutputChannel.Sound:
+                                m_audioSource.outputAudioMixerGroup = instance._soundGroup;
+                                break;
+                            case AudioOutputChannel.Music:
+                                m_audioSource.outputAudioMixerGroup = instance._musicGroup;
+                                break;
+                            default:
+                                m_audioSource.outputAudioMixerGroup = instance._otherGroup;
+                                break;
+                        }
                     }
-                    m_audioSource.outputAudioMixerGroup = value;
                 }
             }
 
@@ -794,43 +852,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle()) 
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return false;
                     }
+
                     return m_audioSource.bypassEffects;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.bypassEffects = value;
                     }
-                    m_audioSource.bypassEffects = value;
-                }
-            }
-
-            public bool BypassListenerEffects
-            {
-                get
-                {
-                    if (_disposed)
-                    {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return false;
-                    }
-                    return m_audioSource.bypassListenerEffects;
-                }
-                set
-                {
-                    if (_disposed)
-                    {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
-                    }
-                    m_audioSource.bypassListenerEffects = value;
                 }
             }
 
@@ -838,21 +872,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return false;
                     }
+
                     return m_audioSource.bypassReverbZones;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.bypassReverbZones = value;
                     }
-                    m_audioSource.bypassReverbZones = value;
                 }
             }
 
@@ -860,21 +892,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.volume;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.volume = value;
                     }
-                    m_audioSource.volume = value;
                 }
             }
 
@@ -882,21 +912,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.pitch;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.pitch = value;
                     }
-                    m_audioSource.pitch = value;
                 }
             }
 
@@ -904,21 +932,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.panStereo;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.panStereo = value;
                     }
-                    m_audioSource.panStereo = value;
                 }
             }
 
@@ -926,21 +952,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.spatialBlend;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.spatialBlend = value;
                     }
-                    m_audioSource.spatialBlend = value;
                 }
             }
 
@@ -948,21 +972,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.reverbZoneMix;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.reverbZoneMix = value;
                     }
-                    m_audioSource.reverbZoneMix = value;
                 }
             }
 
@@ -970,21 +992,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.dopplerLevel;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.dopplerLevel = value;
                     }
-                    m_audioSource.dopplerLevel = value;
                 }
             }
 
@@ -992,21 +1012,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.spread;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.spread = value;
                     }
-                    m_audioSource.spread = value;
                 }
             }
 
@@ -1014,33 +1032,30 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return AudioRolloffMode.Custom;
                     }
+
                     return m_audioSource.rolloffMode;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        switch (value)
+                        {
+                            case AudioRolloffMode.Linear:
+                            case AudioRolloffMode.Logarithmic:
+                                m_audioSource.rolloffMode = value;
+                                break;
+
+                            default:
+                                Debug.LogWarning("Parameter \"RolloffMode\" can only be set to \"Linear\" or \"Logarithmic\"!");
+                                break;
+                        }
+
                     }
-
-                    switch (value)
-                    {
-                        case AudioRolloffMode.Linear:
-                        case AudioRolloffMode.Logarithmic:
-                            m_audioSource.rolloffMode = value;
-                            break;
-
-                        default:
-                            Debug.LogWarning("Parameter \"RolloffMode\" can only be set to \"Linear\" or \"Logarithmic\"!");
-                            break;
-                    }
-
                 }
             }
 
@@ -1048,21 +1063,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.minDistance;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.minDistance = value;
                     }
-                    m_audioSource.minDistance = value;
                 }
             }
 
@@ -1070,21 +1083,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
+
                     return m_audioSource.maxDistance;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.maxDistance = value;
                     }
-                    m_audioSource.maxDistance = value;
                 }
             }
 
@@ -1092,21 +1103,19 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return Vector3.zero;
                     }
+
                     return m_audioSource.transform.position;
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        m_audioSource.transform.position = value;
                     }
-                    m_audioSource.transform.position = value;
                 }
             }
 
@@ -1114,11 +1123,11 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return false;
                     }
+
                     return _isInProcess && !_isPaused;
                 }
             }
@@ -1127,9 +1136,8 @@ namespace Purpaca
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
 
@@ -1148,23 +1156,12 @@ namespace Purpaca
                 }
             }
 
-            //TODO
-            //TODO
-            //TODO
-            //TODO
-            //TODO
-            //TODO
-            //TODO
-            //TODO
-            //TODO
-            //TODO
             public float Time
             {
                 get
                 {
-                    if (_disposed)
+                    if (!CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
                         return float.NaN;
                     }
 
@@ -1174,14 +1171,10 @@ namespace Purpaca
                 }
                 set
                 {
-                    if (_disposed)
+                    if (CheckIsvalidHandle())
                     {
-                        Debug.LogError("Attempt to access a disposed handle!");
-                        return;
+                        //TODO
                     }
-
-                    //TODO
-                    //TODO
                 }
             }
             #endregion
@@ -1356,6 +1349,25 @@ namespace Purpaca
             }
             #endregion
 
+            #region Private 方法
+            /// <summary>
+            /// 检查当前句柄是否有效
+            /// </summary>
+            /// <returns>当前句柄是否有效？</returns>
+            private bool CheckIsvalidHandle() 
+            {
+                if (_disposed)
+                {
+                    Debug.LogError("Attempt to access a disposed handle!");
+                    return false;
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            #endregion
+
             #region 协程
             private IEnumerator Process()
             {
@@ -1388,7 +1400,7 @@ namespace Purpaca
             #endregion
         }
 
-        #region 音频播放句柄属性索引器
+        #region 音频播放句柄属性索引器代理
         /// <summary>
         /// 音频播放句柄的是否忽略混响效果的属性索引器代理
         /// </summary>
@@ -1425,47 +1437,6 @@ namespace Purpaca
                         return;
                     }
                     manager.m_managedHandles[guid].ByPassEffects = value;
-                }
-            }
-            #endregion
-        }
-
-        /// <summary>
-        /// 音频播放句柄的是否忽略场景上 <see cref="AudioListener"/> 实例设置的混响效果的属性索引器代理
-        /// </summary>
-        public class BypassListenerEffectsIndexer
-        {
-            #region 字段
-            private AudioManager manager;
-            #endregion
-
-            #region 构造器
-            public BypassListenerEffectsIndexer(AudioManager manager)
-            {
-                this.manager = manager;
-            }
-            #endregion
-
-            #region 索引器
-            public bool this[string guid]
-            {
-                get
-                {
-                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
-                    {
-                        Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                        return false;
-                    }
-                    return manager.m_managedHandles[guid].BypassListenerEffects;
-                }
-                set
-                {
-                    if (string.IsNullOrEmpty(guid) || !manager.m_managedHandles.ContainsKey(guid))
-                    {
-                        Debug.LogWarning($"The given guid \"{guid}\" is invalid!");
-                        return;
-                    }
-                    manager.m_managedHandles[guid].BypassListenerEffects = value;
                 }
             }
             #endregion
